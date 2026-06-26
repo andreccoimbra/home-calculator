@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mortgage & Monthly Expenses Calculator</title>
+
+  <!-- Bootstrap 5.3 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      background: #f8f9fa;
+      padding: 20px;
+    }
+    .card {
+      border-radius: 14px;
+      border: 1px solid #e5e5e5;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+      background: #ffffff;
+    }
+    .note {
+      background: #f8f9fa;
+      border-left: 4px solid #d1d1d1;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      color: #555;
+    }
+    canvas {
+      max-width: 420px;
+      margin: 0 auto;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container-fluid">
+    <h1 class="mb-4 fw-semibold">Mortgage & Monthly Expenses Calculator</h1>
+
+    <div class="row g-4">
+
+      <!-- Inputs -->
+      <div class="col-lg-4">
+        <div class="card p-4">
+          <h4 class="mb-3">Inputs</h4>
+
+          <div class="mb-3">
+            <label class="form-label">Mortgage amount (€)</label>
+            <input type="number" id="mortgageAmount" class="form-control" value="670000">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Interest rate (% per year)</label>
+            <input type="number" id="interestRate" class="form-control" value="4.16" step="0.01">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Term (years)</label>
+            <input type="number" id="termYears" class="form-control" value="30">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Tax relief rate (%)</label>
+            <input type="number" id="taxRate" class="form-control" value="36.97" step="0.01">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Mortgage type</label>
+            <select id="mortgageType" class="form-select">
+              <option value="linear">Linear</option>
+              <option value="annuity">Annuity</option>
+            </select>
+          </div>
+
+          <h5 class="mt-4">Other Monthly Expenses</h5>
+
+          <div class="row">
+            <div class="col-6 mb-3">
+              <label class="form-label">Water (€)</label>
+              <input type="number" id="water" class="form-control" value="20">
+            </div>
+
+            <div class="col-6 mb-3">
+              <label class="form-label">Electricity (€)</label>
+              <input type="number" id="electricity" class="form-control" value="85">
+            </div>
+
+            <div class="col-6 mb-3">
+              <label class="form-label">Internet (€)</label>
+              <input type="number" id="internet" class="form-control" value="50">
+            </div>
+
+            <div class="col-6 mb-3">
+              <label class="form-label">Groceries (€)</label>
+              <input type="number" id="groceries" class="form-control" value="550">
+            </div>
+
+            <div class="col-6 mb-3">
+              <label class="form-label">Eating out (€)</label>
+              <input type="number" id="eatingOut" class="form-control" value="200">
+            </div>
+
+            <div class="col-6 mb-3">
+              <label class="form-label">Municipal taxes (€)</label>
+              <input type="number" id="municipal" class="form-control" value="78">
+            </div>
+
+            <div class="col-6 mb-3">
+              <label class="form-label">Home insurance (€)</label>
+              <input type="number" id="homeInsurance" class="form-control" value="32">
+            </div>
+
+            <div class="col-6 mb-3">
+              <label class="form-label">Subscriptions (€)</label>
+              <input type="number" id="subscriptions" class="form-control" value="40">
+            </div>
+
+            <div class="col-12 mb-3">
+              <label class="form-label">Health insurance (€)</label>
+              <input type="number" id="healthInsurance" class="form-control" value="310">
+            </div>
+          </div>
+
+          <button class="btn btn-outline-danger w-100 mt-2" onclick="resetValues()">Reset to Defaults</button>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div class="col-lg-4">
+        <div class="card p-4">
+          <h4 class="mb-3">Results</h4>
+
+          <p><strong>Gross mortgage (month 1):</strong> <span id="grossMortgage"></span> €</p>
+          <p><strong>Tax refund (month 1):</strong> <span id="taxRefund"></span> €</p>
+          <p><strong>Net mortgage (month 1):</strong> <span id="netMortgage"></span> €</p>
+          <p><strong>Total monthly expenses:</strong> <span id="totalMonthly"></span> €</p>
+          <p><strong>Per person:</strong> <span id="perPerson"></span> €</p>
+
+          <h5 class="mt-4">Breakdown</h5>
+
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Household (€)</th>
+                <th>Per Person (€)</th>
+              </tr>
+            </thead>
+            <tbody id="breakdownTable"></tbody>
+          </table>
+
+          <div class="note mt-3">
+            <strong>Yearly homeowner taxes (informational only):</strong><br><br>
+
+            <strong>OZB:</strong> €300–€450/year — municipal services.<br>
+            <strong>Waste tax:</strong> €350–€450/year — waste collection & recycling.<br>
+            <strong>Sewer tax:</strong> €150–€200/year — sewer & drainage maintenance.<br>
+            <strong>Water board tax:</strong> €250–€350/year — dikes & purification.<br><br>
+
+            <strong>Total:</strong> ~€1,230/year (~€102/month).  
+            Not included in calculations.
+          </div>
+        </div>
+      </div>
+
+      <!-- Household Pie Chart -->
+      <div class="col-lg-4">
+        <div class="card p-4 text-center">
+          <h4>Household Pie Chart</h4>
+          <canvas id="expensesChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Mortgage Line Chart -->
+      <div class="col-12">
+        <div class="card p-4">
+          <h4>Mortgage Decline Over 30 Years</h4>
+          <canvas id="mortgageLineChart" height="120"></canvas>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    let chart, mortgageLineChart;
+
+    function saveValues() {
+      document.querySelectorAll('input, select').forEach(el => {
+        localStorage.setItem(el.id, el.value);
+      });
+    }
+
+    function loadValues() {
+      document.querySelectorAll('input, select').forEach(el => {
+        const saved = localStorage.getItem(el.id);
+        if (saved !== null) el.value = saved;
+      });
+    }
+
+    function resetValues() {
+      localStorage.clear();
+      location.reload();
+    }
+
+    function calculateAnnuityPayment(P, r, n) {
+      const monthlyRate = r / 12;
+      return P * (monthlyRate / (1 - Math.pow(1 + monthlyRate, -n)));
+    }
+
+    function recalculate() {
+      const amount = parseFloat(document.getElementById("mortgageAmount").value) || 0;
+      const rate = (parseFloat(document.getElementById("interestRate").value) || 0) / 100;
+      const years = parseFloat(document.getElementById("termYears").value) || 30;
+      const taxRate = (parseFloat(document.getElementById("taxRate").value) || 0) / 100;
+      const type = document.getElementById("mortgageType").value;
+
+      const months = years * 12;
+
+      let grossMortgage, interestMonth1, principalMonth;
+
+      if (type === "linear") {
+        principalMonth = amount / months;
+        interestMonth1 = amount * rate / 12;
+        grossMortgage = principalMonth + interestMonth1;
+      } else {
+        grossMortgage = calculateAnnuityPayment(amount, rate, months);
+        interestMonth1 = amount * rate / 12;
+        principalMonth = grossMortgage - interestMonth1;
+      }
+
+      const taxRefund = interestMonth1 * taxRate;
+      const netMortgage = grossMortgage - taxRefund;
+
+      const expenses = {
+        "Mortgage (net)": netMortgage,
+        "Water": parseFloat(document.getElementById("water").value) || 0,
+        "Electricity": parseFloat(document.getElementById("electricity").value) || 0,
+        "Internet": parseFloat(document.getElementById("internet").value) || 0,
+        "Groceries": parseFloat(document.getElementById("groceries").value) || 0,
+        "Eating out": parseFloat(document.getElementById("eatingOut").value) || 0,
+        "Municipal taxes": parseFloat(document.getElementById("municipal").value) || 0,
+        "Home insurance": parseFloat(document.getElementById("homeInsurance").value) || 0,
+        "Subscriptions": parseFloat(document.getElementById("subscriptions").value) || 0,
+        "Health insurance": parseFloat(document.getElementById("healthInsurance").value) || 0
+      };
+
+      const totalMonthly = Object.values(expenses).reduce((a, b) => a + b, 0);
+      const perPerson = totalMonthly / 2;
+
+      document.getElementById("grossMortgage").textContent = grossMortgage.toFixed(2);
+      document.getElementById("taxRefund").textContent = taxRefund.toFixed(2);
+      document.getElementById("netMortgage").textContent = netMortgage.toFixed(2);
+      document.getElementById("totalMonthly").textContent = totalMonthly.toFixed(2);
+      document.getElementById("perPerson").textContent = perPerson.toFixed(2);
+
+      const tbody = document.getElementById("breakdownTable");
+      tbody.innerHTML = "";
+
+      Object.entries(expenses).forEach(([name, value]) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${name}</td>
+          <td>${value.toFixed(2)}</td>
+          <td>${(value / 2).toFixed(2)}</td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      const labels = Object.keys(expenses);
+      const data = Object.values(expenses);
+
+      const colors = [
+        '#ff8c42','#4fc3f7','#ffd54f','#64b5f6','#81c784',
+        '#e57373','#a5d6a7','#4db6ac','#ce93d8','#9575cd'
+      ];
+
+      if (chart) chart.destroy();
+      chart = new Chart(document.getElementById("expensesChart"), {
+        type: "pie",
+        data: { labels, datasets: [{ data, backgroundColor: colors }] }
+      });
+
+      const balance = [];
+      let remaining = amount;
+
+      for (let m = 0; m < months; m++) {
+        if (type === "linear") {
+          remaining -= amount / months;
+        } else {
+          const interest = remaining * rate / 12;
+          const principal = grossMortgage - interest;
+          remaining -= principal;
+        }
+        balance.push(Math.max(remaining, 0));
+      }
+
+      if (mortgageLineChart) mortgageLineChart.destroy();
+      mortgageLineChart = new Chart(document.getElementById("mortgageLineChart"), {
+        type: "line",
+        data: {
+          labels: Array.from({ length: months }, (_, i) => i + 1),
+          datasets: [{
+            label: "Remaining Mortgage (€)",
+            data: balance,
+            borderColor: "#6c757d",
+            fill: false,
+            tension: 0.1
+          }]
+        }
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      loadValues();
+      document.querySelectorAll("input, select").forEach(el => {
+        el.addEventListener("input", () => {
+          saveValues();
+          recalculate();
+        });
+      });
+      recalculate();
+    });
+  </script>
+
+</body>
+</html>
