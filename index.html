@@ -50,6 +50,15 @@
       max-width: 400px;
       margin: 100px auto;
     }
+
+    /* Flex adjustments for synced title element */
+    .amort-header-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
   </style>
 </head>
 
@@ -112,7 +121,7 @@
 
             <div class="mb-3">
               <label class="form-label">Mortgage type</label>
-              <select id="mortgageType" class="form-select">
+              <select id="mortgageType" class="form-select mortgage-sync">
                 <option value="linear">Linear</option>
                 <option value="annuity">Annuity</option>
               </select>
@@ -224,7 +233,17 @@
     <div class="tab-pane fade" id="amort" role="tabpanel">
 
       <div class="card p-4 mt-3">
-        <h4 class="mb-4">Mortgage Decline — Monthly Breakdown</h4>
+        <div class="amort-header-container mb-4">
+          <h4 class="m-0">Mortgage Decline — Monthly Breakdown</h4>
+          
+          <div class="d-flex align-items-center" style="max-width: 250px;">
+            <label class="form-label me-2 mb-0 text-muted small text-nowrap">Type:</label>
+            <select id="mortgageTypeTab2" class="form-select form-select-sm mortgage-sync">
+              <option value="linear">Linear</option>
+              <option value="annuity">Annuity</option>
+            </select>
+          </div>
+        </div>
 
         <div class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
           <table class="table table-sm table-striped" id="amortTable">
@@ -255,7 +274,7 @@
 let chart, mortgageLineChart;
 
 // --- PASSWORD & COOKIES ENGINE ---
-const TARGET_PASSWORD = "orion67"; // <-- Change your password here
+const TARGET_PASSWORD = "MySecurePassword123";
 
 function setCookie(name, value, days) {
   const date = new Date();
@@ -278,7 +297,7 @@ function getCookie(name) {
 function checkPassword() {
   const enteredPassword = document.getElementById("appPassword").value;
   if (enteredPassword === TARGET_PASSWORD) {
-    setCookie("calc_access", "granted", 3); // Valid for 3 days
+    setCookie("calc_access", "granted", 3);
     initializeAccess();
   } else {
     document.getElementById("passwordError").style.display = "block";
@@ -289,7 +308,6 @@ function initializeAccess() {
   document.getElementById("passwordGate").style.display = "none";
   document.getElementById("appContainer").style.display = "block";
   
-  // Initialize calculations only after access is confirmed
   loadValues();
   recalculate();
 }
@@ -306,6 +324,9 @@ function loadValues() {
     const saved = localStorage.getItem(el.id);
     if (saved !== null) el.value = saved;
   });
+  
+  // Explicitly sync Tab 2 selector value with whatever was loaded into main selector
+  document.getElementById("mortgageTypeTab2").value = document.getElementById("mortgageType").value;
 }
 
 function resetValues() {
@@ -323,6 +344,8 @@ function recalculate() {
   const rate = (parseFloat(document.getElementById("interestRate").value) || 0) / 100;
   const years = parseFloat(document.getElementById("termYears").value) || 30;
   const taxRate = (parseFloat(document.getElementById("taxRate").value) || 0) / 100;
+  
+  // Base calculations off the main dropdown
   const type = document.getElementById("mortgageType").value;
 
   const months = years * 12;
@@ -450,12 +473,10 @@ function recalculate() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Check if valid cookie exists on load
   if (getCookie("calc_access") === "granted") {
     initializeAccess();
   }
 
-  // Handle enter key press on password input
   document.getElementById("appPassword").addEventListener("keypress", (e) => {
     if (e.key === "Enter") checkPassword();
   });
@@ -463,6 +484,12 @@ document.addEventListener("DOMContentLoaded", () => {
   // Input bindings
   document.querySelectorAll("#appContainer input, #appContainer select").forEach(el => {
     el.addEventListener("input", () => {
+      // Intercept the synced selectors to update each other
+      if (el.classList.contains('mortgage-sync')) {
+        document.querySelectorAll('.mortgage-sync').forEach(select => {
+          select.value = el.value;
+        });
+      }
       saveValues();
       recalculate();
     });
