@@ -4,10 +4,8 @@
   <meta charset="UTF-8" />
   <title>Mortgage & Monthly Expenses Calculator</title>
 
-  <!-- Bootstrap 5.3 -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
@@ -46,14 +44,29 @@
       background: #ffffff;
       z-index: 10;
     }
+
+    /* Password prompt styles */
+    #passwordGate {
+      max-width: 400px;
+      margin: 100px auto;
+    }
   </style>
 </head>
 
 <body>
 
-<div class="container-fluid">
+<div id="passwordGate" class="card p-4 text-center">
+  <h4 class="mb-3">Protected Access</h4>
+  <p class="text-muted small">Please enter the password to unlock the calculator.</p>
+  <div class="mb-3">
+    <input type="password" id="appPassword" class="form-control" placeholder="Password">
+    <div id="passwordError" class="text-danger small mt-2" style="display: none;">Incorrect password!</div>
+  </div>
+  <button class="btn btn-primary w-100" onclick="checkPassword()">Unlock</button>
+</div>
 
-  <!-- NAV TABS -->
+<div id="appContainer" class="container-fluid" style="display: none;">
+
   <ul class="nav nav-tabs" id="mainTabs" role="tablist">
     <li class="nav-item" role="presentation">
       <button class="nav-link active" id="calc-tab" data-bs-toggle="tab" data-bs-target="#calc" type="button" role="tab">
@@ -69,12 +82,10 @@
 
   <div class="tab-content">
 
-    <!-- TAB 1: CALCULATOR -->
     <div class="tab-pane fade show active" id="calc" role="tabpanel">
 
       <div class="row g-4 mt-2">
 
-        <!-- Inputs (LEFT) -->
         <div class="col-lg-6">
           <div class="card p-4">
             <h4 class="mb-3">Inputs</h4>
@@ -160,7 +171,6 @@
           </div>
         </div>
 
-        <!-- Results (RIGHT) -->
         <div class="col-lg-6">
           <div class="card p-4">
             <h4 class="mb-3">Results</h4>
@@ -200,7 +210,6 @@
 
       </div>
 
-      <!-- Pie Chart (SMALLER, 1/3 WIDTH) -->
       <div class="row g-4 mt-3">
         <div class="col-lg-4 col-md-6 col-12">
           <div class="card p-4 text-center">
@@ -212,22 +221,11 @@
 
     </div>
 
-    <!-- TAB 2: AMORTIZATION -->
     <div class="tab-pane fade" id="amort" role="tabpanel">
 
       <div class="card p-4 mt-3">
+        <h4 class="mb-4">Mortgage Decline — Monthly Breakdown</h4>
 
-        <!-- HEADER WITH TOGGLE -->
-        <h4 class="mb-4 d-flex align-items-center justify-content-between">
-          <span>Mortgage Decline — Monthly Breakdown</span>
-
-          <div class="btn-group" role="group" aria-label="Mortgage Type Toggle">
-            <button type="button" id="toggleLinear" class="btn btn-outline-secondary">Linear</button>
-            <button type="button" id="toggleAnnuity" class="btn btn-outline-secondary">Annuity</button>
-          </div>
-        </h4>
-
-        <!-- FULL WIDTH TABLE WITH STICKY HEADER -->
         <div class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
           <table class="table table-sm table-striped" id="amortTable">
             <thead>
@@ -243,7 +241,6 @@
           </table>
         </div>
 
-        <!-- FULL WIDTH GRAPH -->
         <div class="mt-4">
           <canvas id="mortgageLineChart" height="200"></canvas>
         </div>
@@ -257,14 +254,55 @@
 <script>
 let chart, mortgageLineChart;
 
+// --- PASSWORD & COOKIES ENGINE ---
+const TARGET_PASSWORD = "orion67"; // <-- Change your password here
+
+function setCookie(name, value, days) {
+  const date = new Date();
+  date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+  const expires = "expires=" + date.toUTCString();
+  document.cookie = name + "=" + value + ";" + expires + ";path=/;SameSite=Strict";
+}
+
+function getCookie(name) {
+  const decodedCookie = decodeURIComponent(document.cookie);
+  const ca = decodedCookie.split(';');
+  const nameEQ = name + "=";
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i].trim();
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+  }
+  return "";
+}
+
+function checkPassword() {
+  const enteredPassword = document.getElementById("appPassword").value;
+  if (enteredPassword === TARGET_PASSWORD) {
+    setCookie("calc_access", "granted", 3); // Valid for 3 days
+    initializeAccess();
+  } else {
+    document.getElementById("passwordError").style.display = "block";
+  }
+}
+
+function initializeAccess() {
+  document.getElementById("passwordGate").style.display = "none";
+  document.getElementById("appContainer").style.display = "block";
+  
+  // Initialize calculations only after access is confirmed
+  loadValues();
+  recalculate();
+}
+// ---------------------------------
+
 function saveValues() {
-  document.querySelectorAll('input, select').forEach(el => {
+  document.querySelectorAll('#appContainer input, #appContainer select').forEach(el => {
     localStorage.setItem(el.id, el.value);
   });
 }
 
 function loadValues() {
-  document.querySelectorAll('input, select').forEach(el => {
+  document.querySelectorAll('#appContainer input, #appContainer select').forEach(el => {
     const saved = localStorage.getItem(el.id);
     if (saved !== null) el.value = saved;
   });
@@ -409,45 +447,30 @@ function recalculate() {
       }]
     }
   });
-
-  updateToggleButtons();
 }
-
-// --- SYNC MORTGAGE TYPE BETWEEN TAB 1 AND TAB 2 ---
-
-function updateToggleButtons() {
-  const type = document.getElementById("mortgageType").value;
-
-  document.getElementById("toggleLinear").classList.toggle("btn-secondary", type === "linear");
-  document.getElementById("toggleLinear").classList.toggle("btn-outline-secondary", type !== "linear");
-
-  document.getElementById("toggleAnnuity").classList.toggle("btn-secondary", type === "annuity");
-  document.getElementById("toggleAnnuity").classList.toggle("btn-outline-secondary", type !== "annuity");
-}
-
-// When Tab 2 toggle is clicked
-document.getElementById("toggleLinear").addEventListener("click", () => {
-  document.getElementById("mortgageType").value = "linear";
-  saveValues();
-  updateToggleButtons();
-  recalculate();
-});
-
-document.getElementById("toggleAnnuity").addEventListener("click", () => {
-  document.getElementById("mortgageType").value = "annuity";
-  saveValues();
-  updateToggleButtons();
-  recalculate();
-});
-
-// When Tab 1 dropdown changes
-document.getElementById("mortgageType").addEventListener("change", () => {
-  updateToggleButtons();
-  recalculate();
-});
 
 document.addEventListener("DOMContentLoaded", () => {
-  loadValues();
-  updateToggleButtons();
-  document.querySelectorAll("input, select").forEach(el => {
-    el.addEventListener("input", () =>
+  // Check if valid cookie exists on load
+  if (getCookie("calc_access") === "granted") {
+    initializeAccess();
+  }
+
+  // Handle enter key press on password input
+  document.getElementById("appPassword").addEventListener("keypress", (e) => {
+    if (e.key === "Enter") checkPassword();
+  });
+
+  // Input bindings
+  document.querySelectorAll("#appContainer input, #appContainer select").forEach(el => {
+    el.addEventListener("input", () => {
+      saveValues();
+      recalculate();
+    });
+  });
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>
